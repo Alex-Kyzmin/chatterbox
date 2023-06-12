@@ -67,9 +67,10 @@ class CreatePostView(LoginRequiredMixin, PostMixin, CreateView):
     def form_valid(self, form):
         form.instance.author = self.request.user
         return super().form_valid(form)
-    
+
     def get_success_url(self):
-        return reverse_lazy('blog:profile', kwargs={'username': self.object.author})
+        return reverse_lazy('blog:profile',
+                            kwargs={'username': self.object.author})
 
 
 class EditPostView(LoginRequiredMixin, PostMixin, UpdateView):
@@ -80,11 +81,12 @@ class EditPostView(LoginRequiredMixin, PostMixin, UpdateView):
     def dispatch(self, request, *args, **kwargs):
         post = get_object_or_404(Post, pk=kwargs['post_id'])
         if post.author != request.user:
-            return redirect ('blog:post_detail', id=kwargs['post_id'])
+            return redirect('blog:post_detail', id=kwargs['post_id'])
         return super().dispatch(request, *args, **kwargs)
-    
+
     def get_success_url(self):
-        return reverse_lazy('blog:profile', kwargs={'username': self.object.author})
+        return reverse_lazy('blog:profile',
+                            kwargs={'username': self.object.author})
 
 
 class DeletePostView(LoginRequiredMixin, PostMixin, DeleteView):
@@ -95,7 +97,7 @@ class DeletePostView(LoginRequiredMixin, PostMixin, DeleteView):
     def dispatch(self, request, *args, **kwargs):
         post = get_object_or_404(Post, id=kwargs['post_id'])
         if post.author != request.user:
-            return redirect ('blog:post_detail', id=kwargs['post_id'])
+            return redirect('blog:post_detail', id=kwargs['post_id'])
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -136,9 +138,10 @@ class CreateCommentsView(LoginRequiredMixin, CreateView):
         form.instance.author = self.request.user
         form.instance.post = get_object_or_404(Post, id=self.kwargs['post_id'])
         return super().form_valid(form)
-    
+
     def get_success_url(self):
-        return reverse_lazy('blog:post_detail', kwargs={'id': self.object.post_id})
+        return reverse_lazy('blog:post_detail',
+                            kwargs={'id': self.object.post_id})
 
 
 class EditCommentsView(LoginRequiredMixin, UpdateView):
@@ -150,18 +153,20 @@ class EditCommentsView(LoginRequiredMixin, UpdateView):
     pk_field = 'id'
 
     def dispatch(self, request, *args, **kwargs):
-        comment = get_object_or_404(Comments, id=kwargs['comment_id'], post=kwargs['post_id'])
+        comment = get_object_or_404(Comments, id=kwargs['comment_id'],
+                                    post=kwargs['post_id'])
         if comment.author != request.user:
-            return redirect ('blog:post_detail', id=kwargs['post_id'])
+            return redirect('blog:post_detail', id=kwargs['post_id'])
         return super().dispatch(request, *args, **kwargs)
-    
+
     def form_valid(self, form):
         form.instance.author = self.request.user
         form.instance.post = get_object_or_404(Post, id=self.kwargs['post_id'])
         return super().form_valid(form)
-    
+
     def get_success_url(self):
-        return reverse_lazy('blog:post_detail', kwargs={'id': self.object.post_id})
+        return reverse_lazy('blog:post_detail',
+                            kwargs={'id': self.object.post_id})
 
 
 class DeleteCommentsView(LoginRequiredMixin, DeleteView):
@@ -170,15 +175,17 @@ class DeleteCommentsView(LoginRequiredMixin, DeleteView):
     template_name = 'blog/comment.html'
     pk_url_kwarg = 'comment_id'
     pk_field = 'id'
-   
+
     def dispatch(self, request, *args, **kwargs):
-        comment = get_object_or_404(Comments, id=kwargs['comment_id'], post=kwargs['post_id'])
+        comment = get_object_or_404(Comments, id=kwargs['comment_id'],
+                                    post=kwargs['post_id'])
         if comment.author != request.user:
-            return redirect ('blog:post_detail', id=kwargs['post_id'])
+            return redirect('blog:post_detail', id=kwargs['post_id'])
         return super().dispatch(request, *args, **kwargs)
-    
+
     def get_success_url(self):
-        return reverse_lazy('blog:post_detail', kwargs={'id': self.object.post_id})
+        return reverse_lazy('blog:post_detail',
+                            kwargs={'id': self.object.post_id})
 
 
 def profile(request, username):
@@ -217,6 +224,7 @@ class EditProfile(LoginRequiredMixin, UpdateView):
     template_name = 'blog/user.html'
     slug_url_kwarg = 'username'
     slug_field = 'username'
-    
+
     def get_success_url(self):
-        return reverse_lazy('blog:profile', kwargs={'username': self.object.username})
+        return reverse_lazy('blog:profile',
+                            kwargs={'username': self.object.username})
