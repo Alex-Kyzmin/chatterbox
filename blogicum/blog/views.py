@@ -18,16 +18,16 @@ class Post_Index(ListView):
     """CBV-функция списка постов(главная страница)."""
     model = Post
     queryset = Post.objects.select_related(
-            'author',
-            'location',
-            'category',
-        ).filter(
-            is_published=True,
-            category__is_published=True,
-            pub_date__lte=timezone.now(),
-        ).annotate(
-            comment_count=Count('comments')
-        ).order_by('-pub_date',)
+        'author',
+        'location',
+        'category',
+    ).filter(
+        is_published=True,
+        category__is_published=True,
+        pub_date__lte=timezone.now(),
+    ).annotate(
+        comment_count=Count('comments')
+    ).order_by('-pub_date',)
     template_name = 'blog/index.html'
     paginate_by = 10
 
@@ -116,7 +116,7 @@ def category_posts(request, category_slug):
         is_published=True,
         pub_date__lte=timezone.now(),
     ).annotate(
-            comment_count=Count('comments')
+        comment_count=Count('comments')
     ).order_by('-pub_date',)
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
@@ -124,7 +124,7 @@ def category_posts(request, category_slug):
     context = {
         'page_obj': page_obj,
         'category': category,
-        }
+    }
     return render(request, 'blog/category.html', context)
 
 
@@ -198,8 +198,8 @@ def profile(request, username):
     ).filter(
         author=profile.id
     ).annotate(
-            comment_count=Count('comments')
-        ).order_by('-pub_date',)
+        comment_count=Count('comments')
+    ).order_by('-pub_date',)
     if username == request.user.username:
         post_list = post
     else:
