@@ -34,11 +34,10 @@ class Post(BaseTableRows):
     pub_date = models.DateTimeField(
         verbose_name='Дата и время публикации',
         help_text='Если установить дату и время в будущем'
-        ' — можно делать отложенные публикации.',
+                  ' — можно делать отложенные публикации.',
     )
     image = models.ImageField(
         verbose_name='Картинка',
-        upload_to='post_images',
         blank=True,
     )
     author = models.ForeignKey(
@@ -72,7 +71,7 @@ class Post(BaseTableRows):
         return self.title
 
     def get_absolute_url(self):
-        return reverse('blog:detail', args={self.pk})
+        return reverse('blog:detail', args=[self.pk])
 
 
 class Category(BaseTableRows):
@@ -88,7 +87,7 @@ class Category(BaseTableRows):
         unique=True,
         verbose_name='Идентификатор',
         help_text='Идентификатор страницы для URL; разрешены '
-        'символы латиницы, цифры, дефис и подчёркивание.',
+                  'символы латиницы, цифры, дефис и подчёркивание.',
     )
 
     class Meta:
@@ -116,14 +115,25 @@ class Location(BaseTableRows):
 
 class Comments(models.Model):
     """Модель для комментариев постов"""
-    text = models.TextField(verbose_name='Комментарии к посту')
+    text = models.TextField(
+        verbose_name='Комментарии к посту',
+    )
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
         related_name='comments',
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата и время создания комментария',
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='comments',
+    )
 
     class Meta:
         ordering = ('created_at',)
+        verbose_name = 'комментарий'
+        verbose_name_plural = 'Комментарии'

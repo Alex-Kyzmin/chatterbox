@@ -3,6 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
+# Если заменить на reverse появляются 9 ошибок в пайтесте.
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
@@ -10,8 +11,9 @@ from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 from blog.forms import CommentsForm, PostForm, UserUpdateForm
 from blog.models import Category, Comments, Post
 
+PAGINATE_CONST = 10  # Константа количества вывода постов.
 
-User = get_user_model()
+User = get_user_model()  # Обращаемся к встроенной модели User.
 
 
 class Post_Index(ListView):
@@ -26,10 +28,10 @@ class Post_Index(ListView):
         category__is_published=True,
         pub_date__lte=timezone.now(),
     ).annotate(
-        comment_count=Count('comments')
+        comment_count=Count('comments',)
     ).order_by('-pub_date',)
     template_name = 'blog/index.html'
-    paginate_by = 10
+    paginate_by = PAGINATE_CONST
 
 
 def post_detail(request, id):
@@ -52,14 +54,10 @@ def post_detail(request, id):
     return render(request, 'blog/detail.html', context)
 
 
-class PostMixin:
-    """Миксин для CBV-функций изменений поста."""
+class CreatePostView(LoginRequiredMixin, CreateView):
+    """CBV-функция создания поста."""
     model = Post
     template_name = 'blog/create.html'
-
-
-class CreatePostView(LoginRequiredMixin, PostMixin, CreateView):
-    """CBV-функция создания поста."""
     form_class = PostForm
     success_url = reverse_lazy('blog:profile')
     slug_url_kwarg = 'username'
@@ -69,36 +67,81 @@ class CreatePostView(LoginRequiredMixin, PostMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy('blog:profile',
-                            kwargs={'username': self.object.author})
+        return reverse_lazy('blog:profile', args=[self.object.author])
+
+
+class PostMixin:
+    """Миксин для CBV-функций изменений поста."""
+    model = Post
+    template_name = 'blog/create.html'
+    pk_url_kwarg = 'post_id'
+
+    def dispatch(self, request, *args, **kwargs):
+        post = self.get_object()
+        if post.author != request.user:
+            return redirect('blog:post_detail', id=kwargs['post_id'])
+        return super().dispatch(request, *args, **kwargs)
 
 
 class EditPostView(LoginRequiredMixin, PostMixin, UpdateView):
     """CBV-функция изменения поста."""
     form_class = PostForm
-    pk_url_kwarg = 'post_id'
-
-    def dispatch(self, request, *args, **kwargs):
-        post = get_object_or_404(Post, pk=kwargs['post_id'])
-        if post.author != request.user:
-            return redirect('blog:post_detail', id=kwargs['post_id'])
-        return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        return reverse_lazy('blog:profile',
-                            kwargs={'username': self.object.author})
+        return reverse_lazy('blog:profile', args=[self.object.author])
 
 
 class DeletePostView(LoginRequiredMixin, PostMixin, DeleteView):
     """CBV-функция удаления поста."""
-    pk_url_kwarg = 'post_id'
     success_url = reverse_lazy('blog:index')
 
+
+class CreateCommentsView(LoginRequiredMixin, CreateView):
+    """CBV-функция создания комментария поста."""
+    model = Comments
+    form_class = CommentsForm
+    template_name = 'blog/detail.html'
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        form.instance.post = get_object_or_404(Post, id=self.kwargs['post_id'])
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('blog:post_detail', args=[self.object.post_id])
+
+
+class CommentsMixin:
+    """Миксин для CBV-функций изменений комментарий поста."""
+    model = Comments
+    template_name = 'blog/comment.html'
+    pk_url_kwarg = 'comment_id'
+    pk_field = 'id'
+
     def dispatch(self, request, *args, **kwargs):
-        post = get_object_or_404(Post, id=kwargs['post_id'])
-        if post.author != request.user:
+        comment = get_object_or_404(Comments, pk=kwargs['comment_id'],
+                                    post=kwargs['post_id'])
+        if comment.author != request.user:
             return redirect('blog:post_detail', id=kwargs['post_id'])
         return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse_lazy('blog:post_detail', args=[self.object.post_id])
+
+
+class EditCommentsView(LoginRequiredMixin, CommentsMixin, UpdateView):
+    """CBV-функция изменения комментария поста."""
+    form_class = CommentsForm
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        form.instance.post = get_object_or_404(Post, id=self.kwargs['post_id'])
+        return super().form_valid(form)
+
+
+class DeleteCommentsView(LoginRequiredMixin, CommentsMixin, DeleteView):
+    """CBV-функция удаления комментария поста."""
+    pass
 
 
 def category_posts(request, category_slug):
@@ -116,7 +159,7 @@ def category_posts(request, category_slug):
         is_published=True,
         pub_date__lte=timezone.now(),
     ).annotate(
-        comment_count=Count('comments')
+        comment_count=Count('comments',)
     ).order_by('-pub_date',)
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
@@ -128,66 +171,6 @@ def category_posts(request, category_slug):
     return render(request, 'blog/category.html', context)
 
 
-class CreateCommentsView(LoginRequiredMixin, CreateView):
-    """CBV-функция создания комментария поста."""
-    model = Comments
-    form_class = CommentsForm
-    template_name = 'blog/detail.html'
-
-    def form_valid(self, form):
-        form.instance.author = self.request.user
-        form.instance.post = get_object_or_404(Post, id=self.kwargs['post_id'])
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse_lazy('blog:post_detail',
-                            kwargs={'id': self.object.post_id})
-
-
-class EditCommentsView(LoginRequiredMixin, UpdateView):
-    """CBV-функция изменения комментария поста."""
-    model = Comments
-    form_class = CommentsForm
-    template_name = 'blog/comment.html'
-    pk_url_kwarg = 'comment_id'
-    pk_field = 'id'
-
-    def dispatch(self, request, *args, **kwargs):
-        comment = get_object_or_404(Comments, id=kwargs['comment_id'],
-                                    post=kwargs['post_id'])
-        if comment.author != request.user:
-            return redirect('blog:post_detail', id=kwargs['post_id'])
-        return super().dispatch(request, *args, **kwargs)
-
-    def form_valid(self, form):
-        form.instance.author = self.request.user
-        form.instance.post = get_object_or_404(Post, id=self.kwargs['post_id'])
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse_lazy('blog:post_detail',
-                            kwargs={'id': self.object.post_id})
-
-
-class DeleteCommentsView(LoginRequiredMixin, DeleteView):
-    """CBV-функция удаления комментария поста."""
-    model = Comments
-    template_name = 'blog/comment.html'
-    pk_url_kwarg = 'comment_id'
-    pk_field = 'id'
-
-    def dispatch(self, request, *args, **kwargs):
-        comment = get_object_or_404(Comments, id=kwargs['comment_id'],
-                                    post=kwargs['post_id'])
-        if comment.author != request.user:
-            return redirect('blog:post_detail', id=kwargs['post_id'])
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_success_url(self):
-        return reverse_lazy('blog:post_detail',
-                            kwargs={'id': self.object.post_id})
-
-
 def profile(request, username):
     """view-функция профайла пользователя."""
     profile = get_object_or_404(User, username=username)
@@ -196,9 +179,9 @@ def profile(request, username):
         'location',
         'category',
     ).filter(
-        author=profile.id
+        author=profile.id,
     ).annotate(
-        comment_count=Count('comments')
+        comment_count=Count('comments',)
     ).order_by('-pub_date',)
     if username == request.user.username:
         post_list = post
@@ -226,5 +209,4 @@ class EditProfile(LoginRequiredMixin, UpdateView):
     slug_field = 'username'
 
     def get_success_url(self):
-        return reverse_lazy('blog:profile',
-                            kwargs={'username': self.object.username})
+        return reverse_lazy('blog:profile', args=[self.object.username])

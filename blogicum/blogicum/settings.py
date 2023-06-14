@@ -101,7 +101,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CSRF_FAILURE_VIEW = 'pages.views.csrf_failure'
 
 # прописываем дирректорию загрузки и ссылку на медиа.
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = BASE_DIR / 'media/post_images/'
 MEDIA_URL = '/media/'
 
 # Указываем адрес для редиректа после авторизации

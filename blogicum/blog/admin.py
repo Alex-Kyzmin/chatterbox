@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from blog.models import Category, Location, Post
+from blog.models import Category, Location, Post, Comments
 
 
 @admin.register(Category)
@@ -41,3 +41,15 @@ class PostAdmin(admin.ModelAdmin):
         'created_at'
     )
     search_fields = ('title',)
+
+
+@admin.register(Comments)
+class CommentsAdmin(admin.ModelAdmin):
+    """Класс для настройки админ-зоны модели Post"""
+    list_display = (
+        'text',
+        'post',
+        'author',
+        'created_at',
+    )
+    search_fields = ('text',)
