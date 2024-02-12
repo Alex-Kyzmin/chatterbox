@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+# настройка админ-зоны для импортируемых моделей
 from blog.models import Category, Location, Post, Comments
 
 

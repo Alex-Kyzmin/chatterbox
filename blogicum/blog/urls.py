@@ -3,7 +3,7 @@ from django.urls import path
 
 from blog import views
 
-app_name = 'blog'  # указываем namespace приложения.
+app_name = 'blog'  # namespace приложения.
 
 urlpatterns = [
     path('', views.Post_Index.as_view(), name='index'),
